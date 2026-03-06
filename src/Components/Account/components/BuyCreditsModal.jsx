@@ -4,8 +4,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import RazorpayButton from './RazorpayButton';
 
 const CREDIT_PACKS = [
-  { key: 'pack_10', label: '10 Credits', price: '₹415', credits: 10, perCredit: '₹41.5/credit' },
-  { key: 'pack_25', label: '25 Credits', price: '₹830', credits: 25, perCredit: '₹33.2/credit', popular: true },
+  { key: 'pack_5',  label: '5 Credits',  price: '₹299', credits: 5,  perCredit: '₹59.8/credit' },
+  { key: 'pack_10', label: '10 Credits', price: '₹499', credits: 10, perCredit: '₹49.9/credit' },
+  { key: 'pack_25', label: '25 Credits', price: '₹999', credits: 25, perCredit: '₹39.9/credit', popular: true },
 ];
 
 const BuyCreditsModal = ({ isOpen, onClose, onSuccess }) => {

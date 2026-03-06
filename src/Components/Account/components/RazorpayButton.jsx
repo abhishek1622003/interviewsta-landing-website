@@ -28,7 +28,12 @@ const RazorpayButton = ({ type, plan, pack, label, amount, onSuccess, onError, c
       const razorpayKeyId = accountData.razorpay_key_id;
 
       const payload = { type };
-      if (type === 'plan') payload.plan = plan;
+      if (type === 'plan') {
+        payload.plan = plan;
+        // Derive billing_cycle from plan key suffix
+        if (plan && plan.endsWith('_yearly')) payload.billing_cycle = 'yearly';
+        else if (plan && plan.endsWith('_monthly')) payload.billing_cycle = 'monthly';
+      }
       if (type === 'credits') payload.pack = pack;
 
       const { data: order } = await api.post('billing/create-order/', payload);

@@ -10,6 +10,7 @@ import ScoreBreakdown from './shared/ScoreBreakdown';
 import TranscriptViewer from './shared/TranscriptViewer';
 import StrengthsAndImprovements from './shared/StrengthsAndImprovements';
 import RadialGauge from '../ResumeAnalysis/RadialGauge';
+import LockedSection from './shared/LockedSection';
 
 /**
  * DebateFeedbackTemplate
@@ -23,7 +24,7 @@ import RadialGauge from '../ResumeAnalysis/RadialGauge';
  *   interaction_log, interaction_status_log
  *   round_scores (optional): [{ round, argumentation, persuasion, overall }]
  */
-const DebateFeedbackTemplate = ({ feedbackData = {} }) => {
+const DebateFeedbackTemplate = ({ feedbackData = {}, canAccessFullFeedback = true, currentTier = 0, onUnlock }) => {
   const overallScore = Math.trunc(feedbackData?.overall_score || 0);
   const detailedScores = feedbackData?.detailed_scores || {};
   const feedbackSummary = feedbackData?.feedback_summary || {};
@@ -158,60 +159,64 @@ const DebateFeedbackTemplate = ({ feedbackData = {} }) => {
         </motion.div>
       )}
 
-      {/* ROW 3: Argumentation Skills Radar */}
-      <ScoreBreakdown
-        title="Argumentation Skills"
-        subtitle="Structure, evidence, logical reasoning, and counter-argument handling"
-        gradientFrom="from-orange-600"
-        gradientTo="to-red-600"
-        borderColor="border-orange-200/60"
-        bgFrom="from-white"
-        bgVia="via-orange-50/40"
-        bgTo="to-red-50/30"
-        glowFrom="from-orange-500/10"
-        glowVia="via-red-500/10"
-        glowTo="to-pink-500/10"
-        radarStroke="#f97316"
-        radarFill="#f97316"
-        radarGrid="#fed7aa"
-        radarTick="#7c2d12"
-        categories={argumentationCategories}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Argumentation Skills Breakdown" currentTier={currentTier} onUnlock={onUnlock}>
+        <ScoreBreakdown
+          title="Argumentation Skills"
+          subtitle="Structure, evidence, logical reasoning, and counter-argument handling"
+          gradientFrom="from-orange-600"
+          gradientTo="to-red-600"
+          borderColor="border-orange-200/60"
+          bgFrom="from-white"
+          bgVia="via-orange-50/40"
+          bgTo="to-red-50/30"
+          glowFrom="from-orange-500/10"
+          glowVia="via-red-500/10"
+          glowTo="to-pink-500/10"
+          radarStroke="#f97316"
+          radarFill="#f97316"
+          radarGrid="#fed7aa"
+          radarTick="#7c2d12"
+          categories={argumentationCategories}
+        />
+      </LockedSection>
 
-      {/* ROW 4: Persuasion Skills Radar */}
-      <ScoreBreakdown
-        title="Persuasion Skills"
-        subtitle="Persuasiveness, rhetorical techniques, audience awareness, and conclusions"
-        gradientFrom="from-violet-600"
-        gradientTo="to-indigo-600"
-        borderColor="border-violet-200/60"
-        bgFrom="from-white"
-        bgVia="via-violet-50/40"
-        bgTo="to-indigo-50/30"
-        glowFrom="from-violet-500/10"
-        glowVia="via-purple-500/10"
-        glowTo="to-indigo-500/10"
-        radarStroke="#8b5cf6"
-        radarFill="#8b5cf6"
-        radarGrid="#ddd6fe"
-        radarTick="#2e1065"
-        categories={persuasionCategories}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Persuasion Skills Breakdown" currentTier={currentTier} onUnlock={onUnlock}>
+        <ScoreBreakdown
+          title="Persuasion Skills"
+          subtitle="Persuasiveness, rhetorical techniques, audience awareness, and conclusions"
+          gradientFrom="from-violet-600"
+          gradientTo="to-indigo-600"
+          borderColor="border-violet-200/60"
+          bgFrom="from-white"
+          bgVia="via-violet-50/40"
+          bgTo="to-indigo-50/30"
+          glowFrom="from-violet-500/10"
+          glowVia="via-purple-500/10"
+          glowTo="to-indigo-500/10"
+          radarStroke="#8b5cf6"
+          radarFill="#8b5cf6"
+          radarGrid="#ddd6fe"
+          radarTick="#2e1065"
+          categories={persuasionCategories}
+        />
+      </LockedSection>
 
-      {/* ROW 5: Strengths & Improvements */}
-      <StrengthsAndImprovements
-        strengths={strengths}
-        improvements={improvements}
-        recommendations={[
-          'Practice structured argumentation using the PEEL method (Point, Evidence, Explain, Link)',
-          'Study logical fallacies to strengthen and counter arguments',
-          'Work on rhetorical devices: ethos, pathos, logos',
-          'Record and review debate sessions to identify persuasion weaknesses',
-        ]}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Strengths & Improvements" currentTier={currentTier} onUnlock={onUnlock}>
+        <StrengthsAndImprovements
+          strengths={strengths}
+          improvements={improvements}
+          recommendations={[
+            'Practice structured argumentation using the PEEL method (Point, Evidence, Explain, Link)',
+            'Study logical fallacies to strengthen and counter arguments',
+            'Work on rhetorical devices: ethos, pathos, logos',
+            'Record and review debate sessions to identify persuasion weaknesses',
+          ]}
+        />
+      </LockedSection>
 
-      {/* ROW 6: Transcript */}
-      <TranscriptViewer transcript={transcript} />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Interview Transcript" currentTier={currentTier} onUnlock={onUnlock}>
+        <TranscriptViewer transcript={transcript} />
+      </LockedSection>
     </div>
   );
 };

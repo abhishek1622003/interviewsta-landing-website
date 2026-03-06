@@ -5,6 +5,7 @@ import {
   ArrowLeft, Calendar, Target, Users, Code, Brain, Mic, MessageSquare, Award,
 } from 'lucide-react';
 import api from '../../service/api';
+import { djangoClient } from '../../api/client';
 import { useVideoInterview } from '../../Contexts/VideoInterviewContext';
 
 // Interview-type-specific templates
@@ -176,6 +177,8 @@ const FeedbackRouter = ({ interview_id = null, interview_type = null }) => {
   const [selectedType, setSelectedType] = useState('');
   const [feedbackData, setFeedbackData] = useState({});
   const [pending, setPending] = useState(false);
+  const [canAccessFullFeedback, setCanAccessFullFeedback] = useState(false);
+  const [feedbackAccessTier, setFeedbackAccessTier] = useState(0);
   const pollRef = useRef(null);
   const { state } = useVideoInterview();
   const navigate = useNavigate();
@@ -198,13 +201,27 @@ const FeedbackRouter = ({ interview_id = null, interview_type = null }) => {
     setPending(next.status === 'pending');
   };
 
+  const fetchFeedbackAccess = async () => {
+    try {
+      const { data } = await djangoClient.get('billing/feedback-access/');
+      setCanAccessFullFeedback(data.can_access_full_feedback);
+      setFeedbackAccessTier(data.tier ?? 0);
+    } catch {
+      // Default to locked on error — safe fallback
+      setCanAccessFullFeedback(false);
+    }
+  };
+
   useEffect(() => {
     sessionStorage.setItem('refreshDashboard', 'true');
 
     const fetchFeedbackData = async () => {
       try {
         const requestedType = interview_type || state.session;
-        const response = await api.get('get-session-history/', getParams());
+        const [response] = await Promise.all([
+          api.get('get-session-history/', getParams()),
+          fetchFeedbackAccess(),
+        ]);
         if (!response?.data) throw new Error('Invalid response: missing data');
         applyResponse(response.data, requestedType);
       } catch (err) {
@@ -258,24 +275,29 @@ const FeedbackRouter = ({ interview_id = null, interview_type = null }) => {
 
   if (loading) return <LoadingSkeleton />;
 
+  const sharedProps = {
+    canAccessFullFeedback,
+    currentTier: feedbackAccessTier,
+    onUnlock: fetchFeedbackAccess,
+  };
+
   const renderTemplate = () => {
     if (TECHNICAL_TYPES.includes(selectedType)) {
-      return <TechnicalFeedbackTemplate feedbackData={feedbackData} interviewType={selectedType} />;
+      return <TechnicalFeedbackTemplate feedbackData={feedbackData} interviewType={selectedType} {...sharedProps} />;
     }
     if (HR_TYPES.includes(selectedType)) {
-      return <HRFeedbackTemplate feedbackData={feedbackData} />;
+      return <HRFeedbackTemplate feedbackData={feedbackData} {...sharedProps} />;
     }
     if (CASE_STUDY_TYPES.includes(selectedType)) {
-      return <CaseStudyFeedbackTemplate feedbackData={feedbackData} />;
+      return <CaseStudyFeedbackTemplate feedbackData={feedbackData} {...sharedProps} />;
     }
     if (COMMUNICATION_TYPES.includes(selectedType)) {
-      return <CommunicationFeedbackTemplate feedbackData={feedbackData} />;
+      return <CommunicationFeedbackTemplate feedbackData={feedbackData} {...sharedProps} />;
     }
     if (DEBATE_TYPES.includes(selectedType)) {
-      return <DebateFeedbackTemplate feedbackData={feedbackData} />;
+      return <DebateFeedbackTemplate feedbackData={feedbackData} {...sharedProps} />;
     }
-    // Default fallback: use Technical template for General Interview or unknowns
-    return <TechnicalFeedbackTemplate feedbackData={feedbackData} interviewType={selectedType} />;
+    return <TechnicalFeedbackTemplate feedbackData={feedbackData} interviewType={selectedType} {...sharedProps} />;
   };
 
   return (

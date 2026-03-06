@@ -8,6 +8,7 @@ import ResponseAnalysis from './shared/ResponseAnalysis';
 import TranscriptViewer from './shared/TranscriptViewer';
 import StrengthsAndImprovements from './shared/StrengthsAndImprovements';
 import RadialGauge from '../ResumeAnalysis/RadialGauge';
+import LockedSection from './shared/LockedSection';
 
 /**
  * CaseStudyFeedbackTemplate
@@ -20,7 +21,7 @@ import RadialGauge from '../ResumeAnalysis/RadialGauge';
  *   sub_scores.{Analytical Skills, Business Impact}.{percentile}
  *   interaction_log, interaction_status_log
  */
-const CaseStudyFeedbackTemplate = ({ feedbackData = {} }) => {
+const CaseStudyFeedbackTemplate = ({ feedbackData = {}, canAccessFullFeedback = true, currentTier = 0, onUnlock }) => {
   const overallScore = Math.trunc(feedbackData?.overall_score || 0);
   const detailedScores = feedbackData?.detailed_scores || {};
   const feedbackSummary = feedbackData?.feedback_summary || {};
@@ -127,86 +128,92 @@ const CaseStudyFeedbackTemplate = ({ feedbackData = {} }) => {
         </div>
       </motion.div>
 
-      {/* ROW 3: Response Analysis */}
-      <ResponseAnalysis transcript={transcript} />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Response Analysis" currentTier={currentTier} onUnlock={onUnlock}>
+        <ResponseAnalysis transcript={transcript} />
+      </LockedSection>
 
-      {/* ROW 4: Analytical Skills Radar */}
-      <ScoreBreakdown
-        title="Analytical Skills"
-        subtitle="Problem identification, data interpretation, and logical reasoning"
-        gradientFrom="from-amber-600"
-        gradientTo="to-yellow-600"
-        borderColor="border-amber-200/60"
-        bgFrom="from-white"
-        bgVia="via-amber-50/40"
-        bgTo="to-yellow-50/30"
-        glowFrom="from-amber-500/10"
-        glowVia="via-yellow-500/10"
-        glowTo="to-orange-500/10"
-        radarStroke="#f59e0b"
-        radarFill="#f59e0b"
-        radarGrid="#fde68a"
-        radarTick="#78350f"
-        categories={analyticalCategories}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Analytical Skills Breakdown" currentTier={currentTier} onUnlock={onUnlock}>
+        <ScoreBreakdown
+          title="Analytical Skills"
+          subtitle="Problem identification, data interpretation, and logical reasoning"
+          gradientFrom="from-amber-600"
+          gradientTo="to-yellow-600"
+          borderColor="border-amber-200/60"
+          bgFrom="from-white"
+          bgVia="via-amber-50/40"
+          bgTo="to-yellow-50/30"
+          glowFrom="from-amber-500/10"
+          glowVia="via-yellow-500/10"
+          glowTo="to-orange-500/10"
+          radarStroke="#f59e0b"
+          radarFill="#f59e0b"
+          radarGrid="#fde68a"
+          radarTick="#78350f"
+          categories={analyticalCategories}
+        />
+      </LockedSection>
 
-      {/* ROW 5: Business Impact Radar */}
-      <ScoreBreakdown
-        title="Business Impact"
-        subtitle="Strategic thinking, ROI, risk assessment, and recommendations"
-        gradientFrom="from-emerald-600"
-        gradientTo="to-teal-600"
-        borderColor="border-emerald-200/60"
-        bgFrom="from-white"
-        bgVia="via-emerald-50/40"
-        bgTo="to-teal-50/30"
-        glowFrom="from-emerald-500/10"
-        glowVia="via-teal-500/10"
-        glowTo="to-cyan-500/10"
-        radarStroke="#10b981"
-        radarFill="#10b981"
-        radarGrid="#6ee7b7"
-        radarTick="#064e3b"
-        categories={businessCategories}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Business Impact Breakdown" currentTier={currentTier} onUnlock={onUnlock}>
+        <ScoreBreakdown
+          title="Business Impact"
+          subtitle="Strategic thinking, ROI, risk assessment, and recommendations"
+          gradientFrom="from-emerald-600"
+          gradientTo="to-teal-600"
+          borderColor="border-emerald-200/60"
+          bgFrom="from-white"
+          bgVia="via-emerald-50/40"
+          bgTo="to-teal-50/30"
+          glowFrom="from-emerald-500/10"
+          glowVia="via-teal-500/10"
+          glowTo="to-cyan-500/10"
+          radarStroke="#10b981"
+          radarFill="#10b981"
+          radarGrid="#6ee7b7"
+          radarTick="#064e3b"
+          categories={businessCategories}
+        />
+      </LockedSection>
 
-      {/* ROW 6: Detailed Bar Charts */}
-      <DetailedScoreBars
-        title="Detailed Case Study Analysis"
-        subtitle="Comprehensive breakdown with benchmarks"
-        gradientFrom="from-amber-600"
-        gradientTo="to-emerald-600"
-        borderColor="border-amber-200/60"
-        bgFrom="from-white"
-        bgVia="via-amber-50/40"
-        bgTo="to-emerald-50/30"
-        glowFrom="from-amber-500/10"
-        glowVia="via-yellow-500/10"
-        glowTo="to-emerald-500/10"
-        leftTitle="Analytical Skills"
-        rightTitle="Business Impact"
-        leftScore={analyticalDetails?.score || 0}
-        rightScore={businessDetails?.score || 0}
-        leftBreakdown={analyticalDetails?.breakdown || {}}
-        rightBreakdown={businessDetails?.breakdown || {}}
-        leftColor="#f59e0b"
-        rightColor="#10b981"
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Detailed Case Study Analysis" currentTier={currentTier} onUnlock={onUnlock}>
+        <DetailedScoreBars
+          title="Detailed Case Study Analysis"
+          subtitle="Comprehensive breakdown with benchmarks"
+          gradientFrom="from-amber-600"
+          gradientTo="to-emerald-600"
+          borderColor="border-amber-200/60"
+          bgFrom="from-white"
+          bgVia="via-amber-50/40"
+          bgTo="to-emerald-50/30"
+          glowFrom="from-amber-500/10"
+          glowVia="via-yellow-500/10"
+          glowTo="to-emerald-500/10"
+          leftTitle="Analytical Skills"
+          rightTitle="Business Impact"
+          leftScore={analyticalDetails?.score || 0}
+          rightScore={businessDetails?.score || 0}
+          leftBreakdown={analyticalDetails?.breakdown || {}}
+          rightBreakdown={businessDetails?.breakdown || {}}
+          leftColor="#f59e0b"
+          rightColor="#10b981"
+        />
+      </LockedSection>
 
-      {/* ROW 7: Strengths & Improvements */}
-      <StrengthsAndImprovements
-        strengths={strengths}
-        improvements={improvements}
-        recommendations={[
-          'Practice case frameworks like McKinsey, BCG, and Porter\'s Five Forces',
-          'Improve data analysis skills with Excel and basic statistics',
-          'Focus on structured communication — MECE principles',
-          'Study business cases from top consulting firms',
-        ]}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Strengths & Improvements" currentTier={currentTier} onUnlock={onUnlock}>
+        <StrengthsAndImprovements
+          strengths={strengths}
+          improvements={improvements}
+          recommendations={[
+            'Practice case frameworks like McKinsey, BCG, and Porter\'s Five Forces',
+            'Improve data analysis skills with Excel and basic statistics',
+            'Focus on structured communication — MECE principles',
+            'Study business cases from top consulting firms',
+          ]}
+        />
+      </LockedSection>
 
-      {/* ROW 8: Transcript */}
-      <TranscriptViewer transcript={transcript} />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Interview Transcript" currentTier={currentTier} onUnlock={onUnlock}>
+        <TranscriptViewer transcript={transcript} />
+      </LockedSection>
     </div>
   );
 };

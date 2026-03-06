@@ -12,6 +12,8 @@ import { AudioMetricsExtractor } from "../utils/AudioMetricsExtractor";
 import { useCameraQualityCheck } from "./customHooks/useCameraQuality";
 import AudioQualityIndicator from "../utils/AudioQualityIndicator";
 import { getAuthToken } from "../utils/auth";
+import FreeSessionEndedModal from "./Account/components/FreeSessionEndedModal";
+import UpgradeModal from "./Account/components/UpgradeModal";
 import {
   startInterview,
   submitResponse,
@@ -20,7 +22,7 @@ import {
   getInterviewFeedbackStatus,
 } from "../api/interviewService";
 
-import { fastApiClient } from "../api/client";
+import { fastApiClient, djangoClient } from "../api/client";
 import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 import {
   Square,
@@ -59,6 +61,17 @@ const InterviewInterface = () => {
   const [onTakeTour, setOnTakeTour] = useState(false);
   const [sessionDuration, setSessionDuration] = useState(0);
   const [newData, setNewData] = useState(null);
+
+  // ── Free-tier time restriction ─────────────────────────────────────────────
+  const [planStatus, setPlanStatus]                     = useState(null);
+  const [showFiveMinWarning, setShowFiveMinWarning]     = useState(false);
+  const [showFreeEndedModal, setShowFreeEndedModal]     = useState(false);
+  const [freeEndFeedbackReady, setFreeEndFeedbackReady] = useState(false);
+  const [showUpgradeFromTimer, setShowUpgradeFromTimer] = useState(false);
+  const fiveMinWarnedRef  = useRef(false);
+  const tenMinEndedRef    = useRef(false);
+  // When true, the navigation useEffect must NOT fire — free-timer is handling the end
+  const freeTimerEndedRef = useRef(false);
   const { state, dispatch } = useVideoInterview();
   const [isProcessingAudio, setIsProcessingAudio] = useState(false);
   const queuedMessageRef = useRef([]);
@@ -1993,9 +2006,146 @@ const InterviewInterface = () => {
     // console.log("This is current state -> ", state);
   }, [sessionDuration]);
 
+  // ── Fetch plan status once on mount ────────────────────────────────────────
+  useEffect(() => {
+    const fetchPlanStatus = async () => {
+      try {
+        const { data } = await djangoClient.get('billing/plan-status/');
+        setPlanStatus(data);
+      } catch (err) {
+        console.warn('[FreeTimer] Could not fetch plan status:', err);
+      }
+    };
+    fetchPlanStatus();
+  }, []);
+
+  // ── Store session start timestamp in sessionStorage (persists across refresh) ─
+  useEffect(() => {
+    if (setUpComplete && !sessionStorage.getItem('interview_start_ts')) {
+      sessionStorage.setItem('interview_start_ts', String(Date.now()));
+    }
+  }, [setUpComplete]);
+
+  // ── Free-tier time enforcement ──────────────────────────────────────────────
+  useEffect(() => {
+    if (!planStatus?.has_time_limit) return;
+    if (!issessiongoing) return;
+
+    // Restore elapsed time from sessionStorage so refresh doesn't reset the clock
+    const storedStart = sessionStorage.getItem('interview_start_ts');
+    const elapsed = storedStart
+      ? Math.floor((Date.now() - Number(storedStart)) / 1000)
+      : sessionDuration;
+
+    const effectiveDuration = Math.max(sessionDuration, elapsed);
+
+    // 5-minute warning (non-blocking)
+    if (effectiveDuration >= 300 && !fiveMinWarnedRef.current) {
+      fiveMinWarnedRef.current = true;
+      setShowFiveMinWarning(true);
+    }
+
+    // 10-minute hard stop
+    if (effectiveDuration >= 600 && !tenMinEndedRef.current) {
+      tenMinEndedRef.current = true;
+      setShowFiveMinWarning(false);
+      sessionStorage.removeItem('interview_start_ts');
+
+      // Block the normal navigation useEffect from firing
+      freeTimerEndedRef.current = true;
+
+      // Stop VAD / audio
+      if (vad && vad.listening) vad.pause();
+      if (currentAudioRef.current) {
+        currentAudioRef.current.pause();
+        currentAudioRef.current.currentTime = 0;
+        currentAudioRef.current = null;
+      }
+
+      // Call endInterviewAPI so feedback is generated for visible nodes
+      (async () => {
+        try {
+          const sessionid = sessionIdRef.current;
+          let interview_type = state.session;
+          const duration = sessionDurationRef.current ?? 0;
+          let interview_test_id = interviewTypeIdRef.current
+            ? parseInt(interviewTypeIdRef.current)
+            : null;
+          if (interview_type === 'Case Study Interview') interview_test_id = 35;
+          if (interview_type === 'Communication Interview') interview_test_id = 28;
+          if (interview_type === 'Debate Interview') interview_test_id = 31;
+          if (interview_type === 'Role-Based Interview' || state.videoInterview?.RoleBased?.role) {
+            interview_type = 'Role-Based Interview';
+            if (!interview_test_id) {
+              interview_test_id = state.videoInterview?.RoleBased?.interview_type_id
+                ? parseInt(state.videoInterview.RoleBased.interview_type_id)
+                : 30;
+            }
+          }
+          if (interview_type === 'Company') {
+            const id = state.videoInterview?.CompanyWise?.interview_type_id;
+            if (id != null) interview_test_id = parseInt(id, 10);
+          }
+          if (interview_type === 'Subject') {
+            const id = state.videoInterview?.SubjectWise?.interview_type_id;
+            if (id != null) interview_test_id = parseInt(id, 10);
+          }
+
+          const endResponse = await endInterviewAPI({
+            sessionId: sessionid,
+            interviewType: interview_type,
+            interviewTestId: interview_test_id ?? undefined,
+            duration,
+            sessionFinished: true,
+          });
+
+          const taskId = endResponse?.task_id;
+          if (taskId) {
+            const maxAttempts = 60;
+            const intervalMs = 5000;
+            const pollForFeedback = (attempt = 0) => {
+              if (attempt >= maxAttempts) {
+                setFreeEndFeedbackReady(true);
+                setShowFreeEndedModal(true);
+                return;
+              }
+              getInterviewFeedbackStatus(taskId)
+                .then((statusRes) => {
+                  if (statusRes.status === 'completed' || statusRes.status === 'failed') {
+                    setFreeEndFeedbackReady(true);
+                    setShowFreeEndedModal(true);
+                  } else {
+                    setTimeout(() => pollForFeedback(attempt + 1), intervalMs);
+                  }
+                })
+                .catch(() => setTimeout(() => pollForFeedback(attempt + 1), intervalMs));
+            };
+            // Show modal immediately but feedback not ready yet — user sees upgrade options
+            // while feedback processes in background
+            setShowFreeEndedModal(true);
+            pollForFeedback();
+          } else {
+            setFreeEndFeedbackReady(true);
+            setShowFreeEndedModal(true);
+          }
+        } catch (err) {
+          console.error('[FreeTimer] endInterviewAPI failed:', err);
+          // Still show modal even on error
+          setFreeEndFeedbackReady(true);
+          setShowFreeEndedModal(true);
+        }
+      })();
+    }
+  }, [sessionDuration, planStatus, issessiongoing]);
+
   useEffect(() => {
     // Prevent multiple navigations
     if (hasNavigatedRef.current) {
+      return;
+    }
+
+    // Free-timer end is handled separately — don't navigate here
+    if (freeTimerEndedRef.current) {
       return;
     }
 
@@ -3530,6 +3680,74 @@ const InterviewInterface = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Free-tier 5-minute warning toast ─────────────────────────────── */}
+      <AnimatePresence>
+        {showFiveMinWarning && (
+          <motion.div
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl shadow-xl p-4 flex items-start gap-3">
+              <span className="text-xl">⏳</span>
+              <div className="flex-1">
+                <p className="font-semibold text-amber-800 text-sm">Only 5 minutes remaining</p>
+                <p className="text-amber-700 text-xs mt-0.5">
+                  Upgrade to Basic or Pro for unlimited interview time.
+                </p>
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => { setShowFiveMinWarning(false); setShowUpgradeFromTimer(true); }}
+                    className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    Upgrade Now
+                  </button>
+                  <button
+                    onClick={() => setShowFiveMinWarning(false)}
+                    className="px-3 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 text-xs font-semibold rounded-lg transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Free-tier upgrade modal (from 5-min CTA) ─────────────────────── */}
+      <UpgradeModal
+        isOpen={showUpgradeFromTimer}
+        onClose={() => setShowUpgradeFromTimer(false)}
+        currentTier={planStatus?.tier ?? 0}
+        context="time"
+        onSuccess={() => {
+          setShowUpgradeFromTimer(false);
+          setPlanStatus((prev) => prev ? { ...prev, has_time_limit: false } : prev);
+        }}
+      />
+
+      {/* ── Free-tier 10-minute hard-stop modal (non-dismissable) ─────────── */}
+      <FreeSessionEndedModal
+        isOpen={showFreeEndedModal}
+        feedbackReady={freeEndFeedbackReady}
+        onUpgradeSuccess={(data) => {
+          // Feedback may still be processing — navigate immediately after upgrade
+          // FeedbackRouter will poll until it's ready
+          setShowFreeEndedModal(false);
+          hasNavigatedRef.current = true;
+          Navigate('/feedback-template');
+        }}
+        onContinueToFeedback={() => {
+          if (!freeEndFeedbackReady) return;
+          setShowFreeEndedModal(false);
+          hasNavigatedRef.current = true;
+          Navigate('/feedback-template');
+        }}
+      />
     </div>
   );
 };

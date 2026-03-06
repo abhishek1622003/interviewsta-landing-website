@@ -8,6 +8,7 @@ import ResponseAnalysis from './shared/ResponseAnalysis';
 import TranscriptViewer from './shared/TranscriptViewer';
 import StrengthsAndImprovements from './shared/StrengthsAndImprovements';
 import RadialGauge from '../ResumeAnalysis/RadialGauge';
+import LockedSection from './shared/LockedSection';
 
 /**
  * HRFeedbackTemplate
@@ -21,7 +22,7 @@ import RadialGauge from '../ResumeAnalysis/RadialGauge';
  *   interaction_log, interaction_status_log
  *   soft_skill_summary, speech_summary, big5_features
  */
-const HRFeedbackTemplate = ({ feedbackData = {} }) => {
+const HRFeedbackTemplate = ({ feedbackData = {}, canAccessFullFeedback = true, currentTier = 0, onUnlock }) => {
   const overallScore = Math.trunc(feedbackData?.overall_score || 0);
   const detailedScores = feedbackData?.detailed_scores || {};
   const feedbackSummary = feedbackData?.feedback_summary || {};
@@ -127,86 +128,93 @@ const HRFeedbackTemplate = ({ feedbackData = {} }) => {
         </div>
       </motion.div>
 
-      {/* ROW 3: Response Analysis */}
-      <ResponseAnalysis transcript={transcript} />
+      {/* ROW 3–8: Locked for free users */}
+      <LockedSection isLocked={!canAccessFullFeedback} title="Response Analysis" currentTier={currentTier} onUnlock={onUnlock}>
+        <ResponseAnalysis transcript={transcript} />
+      </LockedSection>
 
-      {/* ROW 4: Communication Skills Radar */}
-      <ScoreBreakdown
-        title="Communication Skills"
-        subtitle="Clarity, confidence, structure, and engagement"
-        gradientFrom="from-blue-600"
-        gradientTo="to-cyan-600"
-        borderColor="border-blue-200/60"
-        bgFrom="from-white"
-        bgVia="via-blue-50/40"
-        bgTo="to-cyan-50/30"
-        glowFrom="from-blue-500/10"
-        glowVia="via-cyan-500/10"
-        glowTo="to-teal-500/10"
-        radarStroke="#3b82f6"
-        radarFill="#3b82f6"
-        radarGrid="#93c5fd"
-        radarTick="#1e3a8a"
-        categories={commCategories}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Communication Skills Breakdown" currentTier={currentTier} onUnlock={onUnlock}>
+        <ScoreBreakdown
+          title="Communication Skills"
+          subtitle="Clarity, confidence, structure, and engagement"
+          gradientFrom="from-blue-600"
+          gradientTo="to-cyan-600"
+          borderColor="border-blue-200/60"
+          bgFrom="from-white"
+          bgVia="via-blue-50/40"
+          bgTo="to-cyan-50/30"
+          glowFrom="from-blue-500/10"
+          glowVia="via-cyan-500/10"
+          glowTo="to-teal-500/10"
+          radarStroke="#3b82f6"
+          radarFill="#3b82f6"
+          radarGrid="#93c5fd"
+          radarTick="#1e3a8a"
+          categories={commCategories}
+        />
+      </LockedSection>
 
-      {/* ROW 5: Cultural Fit Radar */}
-      <ScoreBreakdown
-        title="Cultural Fit"
-        subtitle="Values alignment, teamwork, growth, and initiative"
-        gradientFrom="from-pink-600"
-        gradientTo="to-rose-600"
-        borderColor="border-pink-200/60"
-        bgFrom="from-white"
-        bgVia="via-pink-50/40"
-        bgTo="to-rose-50/30"
-        glowFrom="from-pink-500/10"
-        glowVia="via-rose-500/10"
-        glowTo="to-red-500/10"
-        radarStroke="#ec4899"
-        radarFill="#ec4899"
-        radarGrid="#f9a8d4"
-        radarTick="#831843"
-        categories={culturalCategories}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Cultural Fit Breakdown" currentTier={currentTier} onUnlock={onUnlock}>
+        <ScoreBreakdown
+          title="Cultural Fit"
+          subtitle="Values alignment, teamwork, growth, and initiative"
+          gradientFrom="from-pink-600"
+          gradientTo="to-rose-600"
+          borderColor="border-pink-200/60"
+          bgFrom="from-white"
+          bgVia="via-pink-50/40"
+          bgTo="to-rose-50/30"
+          glowFrom="from-pink-500/10"
+          glowVia="via-rose-500/10"
+          glowTo="to-red-500/10"
+          radarStroke="#ec4899"
+          radarFill="#ec4899"
+          radarGrid="#f9a8d4"
+          radarTick="#831843"
+          categories={culturalCategories}
+        />
+      </LockedSection>
 
-      {/* ROW 6: Detailed Bar Charts */}
-      <DetailedScoreBars
-        title="Detailed HR Performance Analysis"
-        subtitle="Comprehensive breakdown with benchmarks"
-        gradientFrom="from-green-600"
-        gradientTo="to-teal-600"
-        borderColor="border-green-200/60"
-        bgFrom="from-white"
-        bgVia="via-green-50/40"
-        bgTo="to-teal-50/30"
-        glowFrom="from-green-500/10"
-        glowVia="via-teal-500/10"
-        glowTo="to-cyan-500/10"
-        leftTitle="Communication Skills"
-        rightTitle="Cultural Fit"
-        leftScore={commDetails?.score || 0}
-        rightScore={culturalDetails?.score || 0}
-        leftBreakdown={commDetails?.breakdown || {}}
-        rightBreakdown={culturalDetails?.breakdown || {}}
-        leftColor="#3b82f6"
-        rightColor="#ec4899"
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Detailed HR Analysis" currentTier={currentTier} onUnlock={onUnlock}>
+        <DetailedScoreBars
+          title="Detailed HR Performance Analysis"
+          subtitle="Comprehensive breakdown with benchmarks"
+          gradientFrom="from-green-600"
+          gradientTo="to-teal-600"
+          borderColor="border-green-200/60"
+          bgFrom="from-white"
+          bgVia="via-green-50/40"
+          bgTo="to-teal-50/30"
+          glowFrom="from-green-500/10"
+          glowVia="via-teal-500/10"
+          glowTo="to-cyan-500/10"
+          leftTitle="Communication Skills"
+          rightTitle="Cultural Fit"
+          leftScore={commDetails?.score || 0}
+          rightScore={culturalDetails?.score || 0}
+          leftBreakdown={commDetails?.breakdown || {}}
+          rightBreakdown={culturalDetails?.breakdown || {}}
+          leftColor="#3b82f6"
+          rightColor="#ec4899"
+        />
+      </LockedSection>
 
-      {/* ROW 7: Strengths & Improvements */}
-      <StrengthsAndImprovements
-        strengths={strengths}
-        improvements={improvements}
-        recommendations={[
-          'Research the company values and culture more deeply',
-          'Prepare more STAR method examples for behavioral questions',
-          'Practice articulating your achievements with measurable outcomes',
-          'Work on demonstrating leadership and ownership in responses',
-        ]}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Strengths & Improvements" currentTier={currentTier} onUnlock={onUnlock}>
+        <StrengthsAndImprovements
+          strengths={strengths}
+          improvements={improvements}
+          recommendations={[
+            'Research the company values and culture more deeply',
+            'Prepare more STAR method examples for behavioral questions',
+            'Practice articulating your achievements with measurable outcomes',
+            'Work on demonstrating leadership and ownership in responses',
+          ]}
+        />
+      </LockedSection>
 
-      {/* ROW 8: Transcript */}
-      <TranscriptViewer transcript={transcript} />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Interview Transcript" currentTier={currentTier} onUnlock={onUnlock}>
+        <TranscriptViewer transcript={transcript} />
+      </LockedSection>
     </div>
   );
 };

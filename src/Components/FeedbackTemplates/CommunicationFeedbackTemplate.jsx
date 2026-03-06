@@ -10,6 +10,7 @@ import ScoreBreakdown from './shared/ScoreBreakdown';
 import TranscriptViewer from './shared/TranscriptViewer';
 import StrengthsAndImprovements from './shared/StrengthsAndImprovements';
 import RadialGauge from '../ResumeAnalysis/RadialGauge';
+import LockedSection from './shared/LockedSection';
 
 /**
  * CommunicationFeedbackTemplate
@@ -23,7 +24,7 @@ import RadialGauge from '../ResumeAnalysis/RadialGauge';
  *   interaction_log, interaction_status_log
  *   mcq_results (optional): [{ question, user_answer, correct_answer, is_correct }]
  */
-const CommunicationFeedbackTemplate = ({ feedbackData = {} }) => {
+const CommunicationFeedbackTemplate = ({ feedbackData = {}, canAccessFullFeedback = true, currentTier = 0, onUnlock }) => {
   const overallScore = Math.trunc(feedbackData?.overall_score || 0);
   const detailedScores = feedbackData?.detailed_scores || {};
   const feedbackSummary = feedbackData?.feedback_summary || {};
@@ -203,60 +204,64 @@ const CommunicationFeedbackTemplate = ({ feedbackData = {} }) => {
         </motion.div>
       )}
 
-      {/* ROW 4: Speaking Skills Radar */}
-      <ScoreBreakdown
-        title="Speaking Skills"
-        subtitle="Fluency, pronunciation, vocabulary, and sentence construction"
-        gradientFrom="from-teal-600"
-        gradientTo="to-cyan-600"
-        borderColor="border-teal-200/60"
-        bgFrom="from-white"
-        bgVia="via-teal-50/40"
-        bgTo="to-cyan-50/30"
-        glowFrom="from-teal-500/10"
-        glowVia="via-cyan-500/10"
-        glowTo="to-sky-500/10"
-        radarStroke="#14b8a6"
-        radarFill="#14b8a6"
-        radarGrid="#99f6e4"
-        radarTick="#134e4a"
-        categories={speakingCategories}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Speaking Skills Breakdown" currentTier={currentTier} onUnlock={onUnlock}>
+        <ScoreBreakdown
+          title="Speaking Skills"
+          subtitle="Fluency, pronunciation, vocabulary, and sentence construction"
+          gradientFrom="from-teal-600"
+          gradientTo="to-cyan-600"
+          borderColor="border-teal-200/60"
+          bgFrom="from-white"
+          bgVia="via-teal-50/40"
+          bgTo="to-cyan-50/30"
+          glowFrom="from-teal-500/10"
+          glowVia="via-cyan-500/10"
+          glowTo="to-sky-500/10"
+          radarStroke="#14b8a6"
+          radarFill="#14b8a6"
+          radarGrid="#99f6e4"
+          radarTick="#134e4a"
+          categories={speakingCategories}
+        />
+      </LockedSection>
 
-      {/* ROW 5: Comprehension Skills Radar */}
-      <ScoreBreakdown
-        title="Comprehension Skills"
-        subtitle="Listening, reading, contextual understanding, and response relevance"
-        gradientFrom="from-orange-600"
-        gradientTo="to-amber-600"
-        borderColor="border-orange-200/60"
-        bgFrom="from-white"
-        bgVia="via-orange-50/40"
-        bgTo="to-amber-50/30"
-        glowFrom="from-orange-500/10"
-        glowVia="via-amber-500/10"
-        glowTo="to-yellow-500/10"
-        radarStroke="#f97316"
-        radarFill="#f97316"
-        radarGrid="#fed7aa"
-        radarTick="#7c2d12"
-        categories={comprehensionCategories}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Comprehension Skills Breakdown" currentTier={currentTier} onUnlock={onUnlock}>
+        <ScoreBreakdown
+          title="Comprehension Skills"
+          subtitle="Listening, reading, contextual understanding, and response relevance"
+          gradientFrom="from-orange-600"
+          gradientTo="to-amber-600"
+          borderColor="border-orange-200/60"
+          bgFrom="from-white"
+          bgVia="via-orange-50/40"
+          bgTo="to-amber-50/30"
+          glowFrom="from-orange-500/10"
+          glowVia="via-amber-500/10"
+          glowTo="to-yellow-500/10"
+          radarStroke="#f97316"
+          radarFill="#f97316"
+          radarGrid="#fed7aa"
+          radarTick="#7c2d12"
+          categories={comprehensionCategories}
+        />
+      </LockedSection>
 
-      {/* ROW 6: Strengths & Improvements */}
-      <StrengthsAndImprovements
-        strengths={strengths}
-        improvements={improvements}
-        recommendations={[
-          'Practice speaking in English for at least 30 minutes daily',
-          'Listen to podcasts and try to summarize what you heard',
-          'Read articles aloud to improve pronunciation and fluency',
-          'Expand vocabulary by learning 5 new words per day',
-        ]}
-      />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Strengths & Improvements" currentTier={currentTier} onUnlock={onUnlock}>
+        <StrengthsAndImprovements
+          strengths={strengths}
+          improvements={improvements}
+          recommendations={[
+            'Practice speaking in English for at least 30 minutes daily',
+            'Listen to podcasts and try to summarize what you heard',
+            'Read articles aloud to improve pronunciation and fluency',
+            'Expand vocabulary by learning 5 new words per day',
+          ]}
+        />
+      </LockedSection>
 
-      {/* ROW 7: Transcript */}
-      <TranscriptViewer transcript={transcript} />
+      <LockedSection isLocked={!canAccessFullFeedback} title="Interview Transcript" currentTier={currentTier} onUnlock={onUnlock}>
+        <TranscriptViewer transcript={transcript} />
+      </LockedSection>
     </div>
   );
 };
